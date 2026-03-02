@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beat the Clock – Fractions (v4)</title>
+<style>
+  :root{
+    --bg:#0b1020; --text:#e5e7eb; --muted:#a8b3cf; --accent:#60a5fa;
+    --good:#22c55e; --bad:#ef4444; --card:#0f172a; --border:#233049;
+    --btn:#1f2937; --btnH:#334155;
+    --choiceBg:#ffffff; --choiceText:#111827; --choiceBorder:#cbd5e1;
+    --barBorder:#1f2937; --barFill:#60a5fa; --barBg:#ffffff;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#081022,#0b1020 60%,#070d1a);color:var(--text);
+            font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans");}
+  .wrap{min-height:100%;display:grid;place-items:center;padding:18px;}
+  .card{width:min(900px,96vw);background:var(--card);border:2px solid var(--border);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px;}
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  h1{margin:0;font-size:clamp(1.2rem,2.4vw,1.5rem);}
+  .topic{border:1px solid var(--accent);color:var(--accent);border-radius:12px;padding:3px 10px;font-size:.95rem;}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .in,.btn{background:var(--btn);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:1rem;}
+  .in[type="number"]{width:110px;}
+  .btn{cursor:pointer;} .btn:hover{background:var(--btnH);}
+  .primary{background:var(--accent);border-color:var(--accent);color:#07111f;font-weight:700;}
+  .grid{display:grid;grid-template-columns:1fr 330px;gap:12px;} @media(max-width:880px){.grid{grid-template-columns:1fr}}
+  .panel{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:12px;padding:12px;}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .stat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-weight:700;}
+  .prog{height:12px;background:#0b1428;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+  .bar{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#34d399);}
+  .q{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:12px;padding:14px;min-height:60px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(1.05rem,2.6vw,1.35rem);margin-top:10px;}
+  .qcol{display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;}
+  .bars{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;}
+  .barWrap{display:inline-flex;flex-direction:column;align-items:center;gap:4px;}
+  .fracBar{display:flex;border:2px solid var(--barBorder);background:var(--barBg);height:26px;border-radius:4px;overflow:hidden;}
+  .fracSeg{border-right:1px solid var(--barBorder);height:100%;background:transparent;}
+  .fracSeg.fill{background:var(--barFill);}
+  .fracLabel{font-size:13px;color:#e5e7eb;font-weight:700;}
+  .choices{display:grid;gap:10px;grid-template-columns:1fr 1fr;margin-top:8px;} @media(max-width:520px){.choices{grid-template-columns:1fr}}
+  .choice{
+    background:var(--choiceBg); color:var(--choiceText);
+    border:2px solid var(--choiceBorder);
+    border-radius:12px; padding:10px 12px; text-align:center; font-size:1.05rem; cursor:pointer; user-select:none;
+    display:flex; flex-direction:column; gap:6px; align-items:center; justify-content:center;
+  }
+  .choice.correct{outline:2px solid var(--good); box-shadow:0 0 0 3px rgba(34,197,94,.25) inset;}
+  .choice.incorrect{outline:2px solid var(--bad); box-shadow:0 0 0 3px rgba(239,68,68,.25) inset;}
+  .choiceText{line-height:1.2;}
+  .choice .fracBar{height:20px;} /* smaller bars inside choices */
+  .fb{min-height:22px;color:var(--muted);font-size:.98rem;margin-top:6px;}
+  table{width:100%;border-collapse:collapse;font-size:.95rem}
+  th,td{border-bottom:1px solid var(--border);padding:8px 6px;color:var(--muted)} th{text-align:left;color:#cbd5e1}
+  .lbl{font-size:.95rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <header>
+      <h1>Beat the Clock <span id="topicTag" class="topic"></span></h1>
+      <div class="controls">
+        <label for="timeInput" class="lbl">Start time (sec):</label>
+        <input id="timeInput" class="in" type="number" min="5" max="600" step="1" value="30">
+        <button id="startBtn" type="button" class="btn primary" onclick="startGame()">Start</button>
+        <button id="resetBtn" type="button" class="btn" onclick="resetGameUI()">Reset</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="row">
+          <div class="stat">⏱ <span id="time">30</span>s</div>
+          <div class="stat">🏆 Score: <span id="score">0</span></div>
+          <div class="stat">📈 Best: <span id="best">0</span></div>
+          <div class="stat">🎚 Diff: <span id="diff">1</span></div>
+          <div class="stat">❌ Strikes: <span id="strikes">0</span>/3</div>
+        </div>
+        <div class="prog"><div id="bar" class="bar"></div></div>
+
+        <div id="qtext" class="q">
+          <div class="qcol">
+            <div id="qstem">Type time and press <strong>Start</strong></div>
+            <div id="qbars" class="bars"></div>
+          </div>
+        </div>
+
+        <div id="choices" class="choices"></div>
+        <div id="feedback" class="fb"></div>
+      </section>
+
+      <aside class="panel">
+        <h3 style="margin:0 0 8px 0;">History (this device)</h3>
+        <div class="lbl">Last 10 sessions – stored locally only.</div>
+        <table>
+          <thead><tr><th>#</th><th>Score</th><th>Seconds</th><th>Completed</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====== CONFIG: Set topic per copy ====== */
+var TOPIC = 'equivalent';  // change to: 'compare' | 'order' | 'simplify' | 'lcm' | 'convert'
+
+/* ====== Globals ====== */
+var timeEl = document.getElementById('time');
+var scoreEl = document.getElementById('score');
+var bestEl = document.getElementById('best');
+var diffEl = document.getElementById('diff');
+var strikesEl = document.getElementById('strikes');
+var qstemEl = document.getElementById('qstem');
+var qbarsEl = document.getElementById('qbars');
+var choicesEl = document.getElementById('choices');
+var feedbackEl = document.getElementById('feedback');
+var barEl = document.getElementById('bar');
+var timeInput = document.getElementById('timeInput');
+var topicTag = document.getElementById('topicTag');
+
+var topicNames = {
+  equivalent:'Equivalent Fractions',
+  compare:'Compare Fractions (>, <, =)',
+  order:'Order Fractions (Ascending)',
+  simplify:'Simplify Fractions',
+  lcm:'LCM for Common Denominators',
+  convert:'Convert Improper ↔ Mixed'
+};
+topicTag.textContent = topicNames[TOPIC] || 'Fractions';
+
+var STORAGE_KEY = 'btc_hist_' + TOPIC;
+var BEST_KEY = 'btc_best_' + TOPIC;
+
+var state = {
+  running:false, timeLeft:30, startTime:30,
+  score:0, best:0, difficulty:1, timerId:null,
+  strikes:0, maxStrikes:3
+};
+state.best = Number(localStorage.getItem(BEST_KEY) || 0);
+bestEl.textContent = state.best;
+
+/* anti-repetition cache */
+var recentKeys = []; // store last 40 signatures
+function rememberKey(sig){ recentKeys.unshift(sig); if (recentKeys.length>40) recentKeys.pop(); }
+function seenKey(sig){ for (var i=0;i<recentKeys.length;i++) if (recentKeys[i]===sig) return true; return false; }
+
+/* ====== Utils ====== */
+function ri(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function shuffle(a){ for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ var t=a%b; a=b; b=t; } return a||1; }
+function lcm(a,b){ return Math.abs(a*b)/gcd(a,b); }
+function simplify(n,d){ var g=gcd(n,d); var s=d<0?-1:1; return [s*n/g, Math.abs(d)/g]; }
+function fmtFrac(n,d){ return n + '/' + d; }
+function fmtMixed(w,n,d){ if (w===0) return n+'/'+d; if (n===0) return ''+w; return w + ' ' + n + '/' + d; }
+function difficultyFromScore(sc){ var v = 1 + Math.floor(sc/4); return v>9?9:v; }
+function toTimeHHMM(date){ var h = date.getHours(); var m = date.getMinutes(); return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
+function updateStrikesUI(){ strikesEl.textContent = state.strikes; }
+
+/* ====== Fraction bars (DIV-based) ====== */
+function renderFractionBar(container, n, d, label, w){
+  if (d <= 0) d = 1;
+  if (n < 0) n = 0; if (n > d) n = d;
+  var wrap = document.createElement('div');
+  wrap.className = 'barWrap';
+  var bar = document.createElement('div');
+  bar.className = 'fracBar';
+  bar.style.width = (w || 160) + 'px';
+  var segments = d; if (segments > 40) segments = 40;
+  // scale if needed to cap at 40 visual segments
+  var nn = Math.round(n * segments / d);
+  for (var i=0;i<segments;i++){
+    var seg = document.createElement('div');
+    seg.className = 'fracSeg' + (i < nn ? ' fill' : '');
+    seg.style.flex = '0 0 ' + (100/segments) + '%';
+    bar.appendChild(seg);
+  }
+  var cap = document.createElement('div');
+  cap.className = 'fracLabel';
+  cap.textContent = label || (n + '/' + d);
+  wrap.appendChild(bar);
+  wrap.appendChild(cap);
+  container.appendChild(wrap);
+}
+
+/* ====== History (no CSV, show HH:MM only) ====== */
+function renderHistory(){
+  var arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  var body = document.getElementById('historyBody');
+  if (!arr.length){ body.innerHTML = '<tr><td colspan="4" class="lbl">No sessions yet.</td></tr>'; return; }
+  var out=''; for (var i=0;i<arr.length;i++){
+    var e=arr[i];
+    var tm = toTimeHHMM(new Date(e.date));
+    out += '<tr><td>'+(i+1)+'</td><td>'+e.score+'</td><td>'+e.duration+'s</td><td>'+tm+'</td></tr>';
+  }
+  body.innerHTML = out;
+}
+function saveHistory(entry){
+  var arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  arr.unshift(entry); while(arr.length>10) arr.pop();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  renderHistory();
+}
+
+/* ====== Difficulty policy ======
+   - d 1–3: unit fractions only; denominators in {2,3,4,5,10}; bars ON
+   - d 4–5: denominators up to 16; proper mostly; bars OFF
+   - d 6–9: denominators up to 20; allow improper; bars OFF
+   - Never exceed denominator 20 (no 100ths).
+*/
+var UNIT_DENS = [2,3,4,5,10];
+function getDenMax(d){ if (d<=3) return 10; if (d<=5) return 16; return 20; }
+function allowImproper(d){ return d>=6; }
+
+/* ====== Fraction generator honoring policy ====== */
+function genFraction(dLevel, opts){
+  opts = opts || {};
+  var properOnly = (typeof opts.properOnly==='boolean') ? opts.properOnly : !allowImproper(dLevel);
+  var d, n;
+
+  if (dLevel <= 3){
+    d = UNIT_DENS[ Math.floor(Math.random()*UNIT_DENS.length) ];
+    n = 1; // unit fraction
+    // ensure simplest (it is)
+    return { n:n, d:d };
+  }
+
+  var maxDen = getDenMax(dLevel);
+  d = ri(2, maxDen);
+  if (properOnly) n = ri(1, d-1);
+  else n = ri(1, d * (dLevel<7 ? 2 : 3));
+  var s = simplify(n,d);
+  return { n: s[0], d: s[1] };
+}
+
+/* ====== Topic generators (with signatures & early bars) ====== */
+function makeEquivalent(d){
+  var f = genFraction(d, {});
+  // For low levels, keep base as a unit fraction (already ensured by genFraction)
+  var n=f.n, m=f.d;
+  var kChoices = (d>=6) ? [2,3,4,5] : [2,3,4];
+  var k = pick(kChoices);
+  var correct = fmtFrac(n*k, m*k);
+  var stem = 'Find an equivalent fraction to ' + fmtFrac(n,m) + ':';
+  var distractors = [
+    fmtFrac(n*k + pick([-1,1]), m*k),
+    fmtFrac(n*k, m*k + pick([-1,1])),
+    fmtFrac(n*(k+1), m*k)
+  ];
+  var bars = (d<=3) ? [{n:n,d:m,label:fmtFrac(n,m)}] : [];
+  return {stem:stem, correct:correct, distractors:distractors, explain: fmtFrac(n,m)+' × '+k+'/'+k+' = '+correct, bars:bars, _sig: 'equiv:'+n+'/'+m+'*'+k };
+}
+
+function makeCompare(d){
+  var f1 = genFraction(d, {});
+  var n1=f1.n, d1=f1.d;
+  var f2, n2, d2, tries=0;
+  do{
+    f2 = genFraction(d, {});
+    n2=f2.n; d2=f2.d; tries++;
+  } while (Math.abs(n1/d1 - n2/d2) < 0.04 && tries<40); // avoid too-close pairs
+  var sym = (n1/d1) === (n2/d2) ? '=' : ((n1/d1) > (n2/d2) ? '>' : '<');
+  var stem = 'Which comparison is true?';
+  var correct = fmtFrac(n1,d1) + ' ' + sym + ' ' + fmtFrac(n2,d2);
+  var pool = ['<','>','=']; var distractors=[];
+  for (var i=0;i<pool.length;i++){ var s=pool[i]; if (s!==sym) distractors.push(fmtFrac(n1,d1)+' '+s+' '+fmtFrac(n2,d2)); }
+  distractors = shuffle(distractors);
+  var bars = (d<=3) ? [{n:n1,d:d1,label:fmtFrac(n1,d1)},{n:n2,d:d2,label:fmtFrac(n2,d2)}] : [];
+  var a = n1/d1, b = n2/d2;
+  var sigPair = a<b ? (n1+'/'+d1+'|'+n2+'/'+d2) : (n2+'/'+d2+'|'+n1+'/'+d1);
+  return {stem:stem, correct:correct, distractors:distractors, explain:'Use common denominators or decimals to compare.', bars:bars, _sig:'cmp:'+sigPair };
+}
+
+function makeOrder(d){
+  var count = d<4?3:4;
+  var fr=[];
+  while(fr.length<count){
+    var f = genFraction(d,{});
+    var ok=true; for (var i=0;i<fr.length;i++){ if(fr[i].n===f.n && fr[i].d===f.d){ ok=false; break; } }
+    if (ok) fr.push(f);
+  }
+  var shown=[], sorted=fr.slice().sort(function(a,b){ return a.n/a.d - b.n/b.d; });
+  for (var j=0;j<fr.length;j++){ shown.push(fmtFrac(fr[j].n, fr[j].d)); }
+  var sortedText=[]; for (var k=0;k<sorted.length;k++){ sortedText.push(fmtFrac(sorted[k].n, sorted[k].d)); }
+  var stem='Order from least to greatest: ' + shown.join(', ');
+  var correct = sortedText.join(' < ');
+  var alt1 = sortedText.slice(); if(alt1.length>1){ var t=alt1[0]; alt1[0]=alt1[1]; alt1[1]=t; }
+  var alt2 = sortedText.slice(); if(alt2.length>1){ var t2=alt2[alt2.length-1]; alt2[alt2.length-1]=alt2[alt2.length-2]; alt2[alt2.length-2]=t2; }
+  var alt3 = sortedText.slice().reverse().join(' < ');
+  var distractors=[alt1.join(' < '), alt2.join(' < '), alt3];
+  var bars = [];
+  if (d<=3){
+    for (var b=0;b<fr.length;b++){ bars.push({n:fr[b].n,d:fr[b].d,label:fmtFrac(fr[b].n,fr[b].d)}); }
+  }
+  var sigList = shown.slice().sort().join(',');
+  return {stem:stem, correct:correct, distractors:distractors, explain:'Compare by common denominators or decimals.', bars:bars, _sig:'ord:'+sigList };
+}
+
+function makeSimplify(d){
+  if (d<=3){
+    // Construct an unsimplified fraction that reduces to a unit fraction in {2,3,4,5,10}
+    var m = UNIT_DENS[ Math.floor(Math.random()*UNIT_DENS.length) ];
+    var k = pick([2,3,4,5]);
+    var n = 1*k, den = m*k;
+    var s=simplify(n,den), sn=s[0], sd=s[1];
+    var stem = 'Simplify ' + fmtFrac(n,den) + ' to lowest terms:';
+    var correct = fmtFrac(sn,sd);
+    var distractors = [ fmtFrac(sn+1,sd), fmtFrac(sn,sd+1), fmtFrac(sn,sd*k) ];
+    var bars = [{n:n,d:den,label:fmtFrac(n,den)}];
+    return {stem:stem, correct:correct, distractors:distractors, explain:'Divide by GCF = ' + gcd(n,den) + '.', bars:bars, _sig:'simp:'+n+'/'+den };
+  } else {
+    var base = genFraction(d,{});
+    var k2 = pick([2,3,4,5]);
+    var n2=base.n * k2, den2=base.d * k2;
+    var s2=simplify(n2,den2), sn2=s2[0], sd2=s2[1];
+    var stem2 = 'Simplify ' + fmtFrac(n2,den2) + ' to lowest terms:';
+    var correct2 = fmtFrac(sn2,sd2);
+    var distractors2 = [ fmtFrac(sn2+1,sd2), fmtFrac(sn2,sd2+1), fmtFrac(sn2,sd2*k2) ];
+    var bars2 = []; // no bars from level 4+
+    return {stem:stem2, correct:correct2, distractors:distractors2, explain:'Divide by GCF = ' + gcd(n2,den2) + '.', bars:bars2, _sig:'simp:'+n2+'/'+den2 };
+  }
+}
+
+function makeLCM(d){
+  var maxD = (d<=5?16:20);
+  var d1=ri(2, maxD); var d2; do{ d2=ri(2, maxD); } while(d2===d1);
+  var L=lcm(d1,d2);
+  return {stem:'What is the least common multiple (LCM) of '+d1+' and '+d2+'?', correct:String(L),
+          distractors:shuffle([String(Math.max(d1,d2)), String(d1*d2), String(L + pick([-d1,d1,-2,2]))]),
+          explain:'LCM('+d1+', '+d2+') = '+L+'.', bars:[], _sig:'lcm:'+Math.min(d1,d2)+','+Math.max(d1,d2)};
+}
+
+function makeConvert(d){
+  var toMixed = Math.random()<0.5;
+  if (toMixed){
+    var den= (d<=3) ? UNIT_DENS[Math.floor(Math.random()*UNIT_DENS.length)] : ri(2, getDenMax(d));
+    var num=ri(den+1, den*(d<7?2:3));
+    var s=simplify(num,den), sn=s[0], sd=s[1]; var whole=Math.trunc(sn/sd), rem=sn%sd;
+    var bars = (d<=3) ? [{n:sn,d:sd,label:fmtFrac(sn,sd)}] : [];
+    return {stem:'Convert to a mixed number: '+fmtFrac(sn,sd), correct:fmtMixed(whole, rem, sd),
+            distractors:shuffle([fmtMixed(whole+1, Math.max(0,rem-1), sd), fmtMixed(whole, Math.max(0,rem-1), sd), fmtMixed(whole, rem, sd+1)]),
+            explain: sn+'/'+sd+' = '+whole+' and '+rem+'/'+sd+'.', bars:bars, _sig:'conv:mix:'+sn+'/'+sd};
+  } else {
+    var den2= (d<=3) ? UNIT_DENS[Math.floor(Math.random()*UNIT_DENS.length)] : ri(2, getDenMax(d));
+    var whole2=ri(1, d<6?3:5);
+    var rem2=ri(1, den2-1);
+    var improper=whole2*den2+rem2;
+    var bars2 = (d<=3) ? [{n:rem2,d:den2,label:fmtFrac(rem2,den2)}] : [];
+    return {stem:'Convert to an improper fraction: '+fmtMixed(whole2,rem2,den2), correct:fmtFrac(improper,den2),
+            distractors:shuffle([ fmtFrac(whole2*den2 + Math.max(0,rem2-1), den2), fmtFrac(whole2*den2 + rem2, den2+1), fmtFrac(whole2*den2 - rem2, den2) ]),
+            explain: whole2+'×'+den2+' + '+rem2+' = '+improper+'/'+den2+'.', bars:bars2, _sig:'conv:imp:'+whole2+'|'+rem2+'/'+den2};
+  }
+}
+
+/* Unique question wrapper */
+function makeQuestionUnique(topic, d){
+  var tries = 0, q = null;
+  while (tries++ < 25){
+    if (topic==='equivalent') q = makeEquivalent(d);
+    else if (topic==='compare') q = makeCompare(d);
+    else if (topic==='order') q = makeOrder(d);
+    else if (topic==='simplify') q = makeSimplify(d);
+    else if (topic==='lcm') q = makeLCM(d);
+    else if (topic==='convert') q = makeConvert(d);
+    else q = makeEquivalent(d);
+
+    var sig = q._sig || (q.stem + '|' + q.correct);
+    if (!seenKey(sig)){ rememberKey(sig); return q; }
+  }
+  return q;
+}
+
+/* ====== UI & Game ====== */
+function updateTimeBar(){ var pct=Math.max(0, Math.min(100, 100*state.timeLeft/state.startTime)); barEl.style.width = (pct||0)+'%'; }
+
+function renderBars(bars){
+  qbarsEl.innerHTML = '';
+  if (!bars || !bars.length) return;
+  for (var i=0;i<bars.length;i++){
+    var b = bars[i];
+    renderFractionBar(qbarsEl, b.n, b.d, b.label, 160);
+  }
+}
+
+function addAnswerBarIfSimpleFraction(btn, text){
+  // Only at early levels
+  if (state.difficulty>=4) return;
+  var m = /^(\d+)\s*\/\s*(\d+)$/.exec(text);
+  if (!m) return;
+  var n = parseInt(m[1],10), d = parseInt(m[2],10);
+  var wrap = document.createElement('div');
+  renderFractionBar(wrap, n, d, null, 120);
+  btn.appendChild(wrap);
+}
+
+function renderQuestion(q){
+  qstemEl.textContent = q.stem; feedbackEl.textContent='';
+  renderBars(q.bars);
+  var opts = [q.correct, q.distractors[0], q.distractors[1], q.distractors[2]];
+  opts = shuffle(opts);
+  choicesEl.innerHTML='';
+  for (var i=0;i<opts.length;i++){
+    var opt=opts[i];
+    var btn=document.createElement('button'); btn.type='button'; btn.className='choice';
+    var span = document.createElement('div'); span.className='choiceText'; span.textContent = (i+1)+'. '+opt;
+    btn.appendChild(span);
+    (function(optCopy, b){ b.onclick=function(){ handleAnswer(optCopy, q); }; })(opt, btn);
+    addAnswerBarIfSimpleFraction(btn, opt);
+    choicesEl.appendChild(btn);
+  }
+}
+
+function nextQuestion(){
+  var d = difficultyFromScore(state.score);
+  state.difficulty = d; diffEl.textContent = d;
+  var q = makeQuestionUnique(TOPIC, d);
+  renderQuestion(q);
+}
+
+function handleAnswer(selected,q){
+  var buttons = choicesEl.querySelectorAll('.choice');
+  var i, btn, correctBtn=null, selectedBtn=null;
+  for (i=0;i<buttons.length;i++){
+    btn = buttons[i];
+    var txt = btn.querySelector('.choiceText').textContent;
+    var ends = txt.substring(txt.indexOf('. ')+2);
+    if (ends===q.correct) correctBtn = btn;
+    if (ends===selected)  selectedBtn = btn;
+  }
+  if (selected === q.correct){
+    state.score += 1; scoreEl.textContent = state.score;
+    state.timeLeft += 3;
+    if (selectedBtn) selectedBtn.classList.add('correct');
+    feedbackEl.textContent = 'Correct!';
+    setTimeout(nextQuestion, 450);
+  } else {
+    if (selectedBtn) selectedBtn.classList.add('incorrect');
+    if (correctBtn) correctBtn.classList.add('correct');
+    feedbackEl.textContent = 'Incorrect. Correct answer: ' + q.correct + (q.explain? ' — '+q.explain : '');
+    // NEW: strikes system
+    state.strikes += 1; updateStrikesUI();
+    if (state.strikes >= state.maxStrikes){
+      setTimeout(function(){ finishGame('strikes'); }, 350);
+      return;
+    }
+    setTimeout(nextQuestion, 650);
+  }
+}
+
+function finishGame(reason){
+  clearInterval(state.timerId); state.timerId=null; state.running=false;
+  var msg = (reason==='strikes') ? '3 strikes!' : 'Time!';
+  qstemEl.textContent = msg + ' Final score: ' + state.score; qbarsEl.innerHTML=''; choicesEl.innerHTML='';
+  feedbackEl.textContent='Press Start to try again.';
+  if (state.score > state.best){ state.best = state.score; localStorage.setItem(BEST_KEY, String(state.best)); }
+  bestEl.textContent = state.best;
+  saveHistory({score:state.score, duration:state.startTime, date:Date.now()});
+}
+
+function startGame(){
+  if (state.running) return;
+  var v = Number(timeInput.value);
+  var startSeconds = (isFinite(v) ? Math.max(5, Math.min(600, Math.round(v))) : 30);
+  timeInput.value = String(startSeconds);
+
+  state.running = true; state.startTime = startSeconds; state.timeLeft = startSeconds;
+  state.score = 0; scoreEl.textContent='0'; state.difficulty=1; diffEl.textContent='1';
+  state.strikes = 0; updateStrikesUI();
+  timeEl.textContent = Math.ceil(state.timeLeft); barEl.style.width='100%';
+
+  nextQuestion();
+  state.timerId = setInterval(function(){
+    if (!state.running) return;
+    state.timeLeft = Math.max(0, state.timeLeft - 0.1);
+    timeEl.textContent = Math.ceil(state.timeLeft);
+    updateTimeBar();
+    if (state.timeLeft <= 0){ finishGame('time'); }
+  }, 100);
+}
+
+function resetGameUI(){
+  clearInterval(state.timerId); state.timerId=null; state.running=false;
+  state.score=0; scoreEl.textContent='0'; state.difficulty=1; diffEl.textContent='1';
+  state.strikes=0; updateStrikesUI();
+  var startVal = Number(timeInput.value || 30); state.timeLeft = Math.max(5, startVal); state.startTime = state.timeLeft;
+  timeEl.textContent = Math.ceil(state.timeLeft); barEl.style.width='100%';
+  qstemEl.innerHTML='Type time and press <strong>Start</strong>'; qbarsEl.innerHTML=''; choicesEl.innerHTML=''; feedbackEl.textContent='';
+}
+
+/* init */
+renderHistory();
+resetGameUI();
+</script>
+</body>
+</html>
