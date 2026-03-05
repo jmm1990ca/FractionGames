@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Beat the Clock – Topics</title>
+<meta name="color-scheme" content="dark light">
+<style>
+  :root{
+    --bg:#0b1020; --card:#0f172a; --text:#e5e7eb; --muted:#a8b3cf; --accent:#60a5fa; --border:#233049;
+    --btn:#60a5fa; --btnText:#07111f; --tile:#101a31; --tileBorder:#35518a;
+  }
+  html,body{margin:0;background:linear-gradient(180deg,#081022,#0b1020 60%,#070d1a);color:var(--text);
+            font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans');}
+  .wrap{max-width:980px;margin:0 auto;padding:22px;}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;}
+  h1{margin:0;font-size:clamp(1.4rem,2.8vw,1.9rem);letter-spacing:.2px}
+  .subtitle{margin:4px 0 0 0;color:var(--muted);font-size:.96rem}
+  .panel{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:14px;margin:14px 0;box-shadow:0 10px 32px rgba(0,0,0,.25);}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  label{color:var(--muted);font-size:.95rem}
+  input[type="number"]{width:90px;background:#1f2937;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px}
+  input[type="checkbox"]{transform:translateY(1px)}
+  button.build{background:var(--btn);color:var(--btnText);border:none;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}
+  button.build:hover{filter:brightness(1.05)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+  a.card{display:block;text-decoration:none;background:#0f172a;border:2px solid #233049;border-radius:14px;padding:16px;color:var(--text);transition:all .12s ease}
+  a.card:hover{background:var(--tile);border-color:var(--tileBorder)}
+  .topic{display:block;font-weight:800;margin-bottom:4px;color:var(--accent)}
+  .muted{color:var(--muted);font-size:.92rem;word-break:break-all}
+  footer{color:var(--muted);font-size:.9rem;margin-top:12px}
+  .hint{color:var(--muted);font-size:.9rem;margin-top:8px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Beat the Clock – Fractions</h1>
+        <p class="subtitle">Pick a topic, or set class defaults and click <strong>Build Links</strong>.</p>
+      </div>
+    </header>
+
+    <!-- Quick-config panel -->
+    <section class="panel">
+      <div class="controls">
+        <label>Seconds:
+          <input id="sec" type="number" min="5" max="600" value="60" />
+        </label>
+        <label>Strikes:
+          <input id="str" type="number" min="1" max="5" value="3" />
+        </label>
+        <label><input id="large" type="checkbox" /> Large UI</label>
+        <label><input id="barsOff" type="checkbox" /> Bars Off</label>
+        <label><input id="pauseWrong" type="checkbox" /> Pause on wrong (early)</label>
+        <button class="build" onclick="buildLinks()">Build Links</button>
+      </div>
+      <p class="hint">Tip: Share these links in your LMS/Google Classroom/Teams so everyone starts with the same settings.</p>
+    </section>
+
+    <!-- Topic tiles -->
+    <section class="panel">
+      <div id="links" class="grid"></div>
+    </section>
+
+    <footer>
+      <div>How to use: Click a topic. Or set seconds/strikes above and click <strong>Build Links</strong> to generate pre-configured URLs.</div>
+    </footer>
+  </div>
+
+<script>
+  // Topic list: [Display Name, File Name]
+  var topics = [
+    ['Equivalent Fractions','btc-equivalent.html'],
+    ['Compare Fractions (>, <, =)','btc-compare.html'],
+    ['Order Fractions (Ascending)','btc-order.html'],
+    ['Simplify Fractions','btc-simplify.html'],
+    ['LCM for Common Denominators','btc-lcm.html'],
+    ['Convert Improper ↔ Mixed','btc-convert.html']
+  ];
+
+  function esc(s){return encodeURIComponent(String(s||''));}
+
+  function buildLinks(){
+    var sec = document.getElementById('sec').value || '60';
+    var str = document.getElementById('str').value || '3';
+    var large = document.getElementById('large').checked ? '&large=1' : '';
+    var barsOff = document.getElementById('barsOff').checked ? '&bars=off' : '';
+    var pauseWrong = document.getElementById('pauseWrong').checked ? '&pauseWrong=1' : '';
+    var c = document.getElementById('links'); c.innerHTML = '';
+
+    for(var i=0;i<topics.length;i++){
+      var name = topics[i][0], href = topics[i][1];
+      // Build a pre-configured URL with chosen settings
+      var url = href + '?sec=' + esc(sec) + '&strikes=' + esc(str) + large + barsOff + pauseWrong;
+
+      var a = document.createElement('a');
+      a.className = 'card';
+      a.href = url;
+
+      var t = document.createElement('span');
+      t.className = 'topic';
+      t.textContent = name;
+      a.appendChild(t);
+
+      var m = document.createElement('div');
+      m.className = 'muted';
+      m.textContent = url;
+      a.appendChild(m);
+
+      c.appendChild(a);
+    }
+  }
+
+  // Build default (60s, 3 strikes) tiles on load
+  buildLinks();
+</script>
+</body>
+</html>
